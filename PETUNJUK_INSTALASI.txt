@@ -1,0 +1,10 @@
+DSS AICROP — By. MUSHTHOFA
+
+Aplikasi ini adalah PWA. Agar muncul sebagai aplikasi yang bisa diinstal di Android / iPhone, unggah seluruh isi folder ke web hosting HTTPS (contoh: GitHub Pages, Netlify, Vercel). Jangan hanya membuka index.html dari penyimpanan HP (file://) untuk proses instalasi PWA.
+
+Android: buka URL HTTPS di Chrome, lalu menu ⋮ > Install app / Tambahkan ke layar utama.
+iPhone: buka URL HTTPS di Safari, lalu tombol Bagikan > Tambahkan ke Layar Utama.
+
+Setelah pertama kali dibuka secara online, cache aplikasi memungkinkan penggunaan offline pada perangkat yang mendukung service worker.
+
+Aplikasi ini TIDAK melakukan optimasi LP baru. Pengubahan luas tanam hanya menjalankan simulasi koefisien tetap. Identitas DI, data Q80, dan koefisien W perlu diperbarui untuk menerapkan model ke lokasi lain.
