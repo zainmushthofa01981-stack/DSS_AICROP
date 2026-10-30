@@ -555,5 +555,33 @@ function downloadKeningCSV(){
 renderKCropChecks();
 
 </script>
+
+<script>
+/* Mobile/PWA forced refresh helper — DSS AICROP v6 */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./service-worker.js?v=6', { scope: './' });
+      await reg.update();
+
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    } catch (err) {
+      console.warn('Service worker update failed:', err);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
