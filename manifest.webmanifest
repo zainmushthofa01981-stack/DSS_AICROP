@@ -1,13 +1,13 @@
 {
-  "name": "DSS AICROP — Optimasi Irigasi Adaptif",
+  "name": "DSS AICROP - Adaptive Irrigation & Cropping Pattern Optimization",
   "short_name": "DSS AICROP",
-  "description": "Dashboard dan simulasi manual optimasi pola tanam berbasis Q80, By. Mushthofa.",
+  "description": "Decision Support System for Adaptive Irrigation & Cropping Pattern Optimization",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f2f7fb",
-  "theme_color": "#10324a",
-  "lang": "id",
+  "background_color": "#ffffff",
+  "theme_color": "#003B70",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",
