@@ -4,12 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DSS AICROP</title>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#003B70">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="DSS AICROP">
-<link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root{
@@ -62,7 +56,7 @@ canvas{background:#fff;border-radius:10px;padding:8px}
 <body>
 <div class="container">
   <div class="header">
-    <img class="logo" src="icon-192.png" alt="Logo UNDIP">
+    <img class="logo" src="https://mm.undip.ac.id/wp-content/uploads/2021/11/universitas-diponegoro-logo.png" alt="Logo UNDIP">
     <div class="headerText">
       <div class="title">DSS AICROP</div>
       <div class="subtitle">Decision Support System - Adaptive Irrigation &amp; Cropping Pattern Optimization</div>
@@ -74,8 +68,7 @@ canvas{background:#fff;border-radius:10px;padding:8px}
   <div class="toolbar">
     <button class="btn primary" onclick="setMode('kening')">DI Kening — Research Mode</button>
     <button class="btn secondary" onclick="setMode('general')">General Irrigation Area — FAO-56</button>
-    <button id="installAppBtn" class="btn gold" onclick="installPWA()">📲 INSTALL APP</button>
-<button class="btn gold" onclick="window.print()">Cetak / Simpan PDF</button>
+    <button class="btn gold" onclick="window.print()">Cetak / Simpan PDF</button>
   </div>
 
   <div class="card">
@@ -88,20 +81,112 @@ canvas{background:#fff;border-radius:10px;padding:8px}
     </div>
   </div>
 
-  <section id="keningMode">
-    <div class="card">
-      <h2>DI Kening — Research Mode</h2>
-      <div class="note">Mode penelitian menggunakan 36 periode 10-harian. Nilai final ketersediaan air tahunan = <b>214.127.936,64 m³</b>.</div>
-      <div class="grid">
-        <div class="metric"><div class="label">Luas Fisik</div><div class="value">2.522 ha</div></div>
-        <div class="metric"><div class="label">Air MT I</div><div class="value">102,26 jt m³</div></div>
-        <div class="metric"><div class="label">Air MT II</div><div class="value">111,27 jt m³</div></div>
-        <div class="metric"><div class="label">Air MT III</div><div class="value">0,603 jt m³</div></div>
-      </div>
-      <p>Struktur model: MT I padi 100%, MT II–MT III terbuka untuk optimasi komoditas, objective maksimum keuntungan, kendala air 36 periode dan okupansi lahan.</p>
-      <div class="success">Untuk running ilmiah final DI Kening, gunakan aplikasi Python/Streamlit karena solver 36-periode dan kalender adaptifnya lebih lengkap daripada versi HTML mandiri ini.</div>
+  
+<section id="keningMode">
+  <div class="card">
+    <h2>DI Kening — Research Mode</h2>
+    <div class="note">
+      Model penelitian menggunakan <b>36 periode 10-harian</b>, MT I padi 100%, 
+      MT II–MT III dipilih solver, fungsi tujuan maksimum keuntungan, serta kendala air dan okupansi lahan.
     </div>
-  </section>
+
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;align-items:center;margin:14px 0">
+      <button id="kRunTop" class="btn primary" style="width:100%;font-size:17px;padding:15px" onclick="runKeningOptimization()">
+        ▶ RUN RESEARCH OPTIMIZATION
+      </button>
+      <div id="kTopState" class="note" style="margin:0">
+        Tekan RUN untuk menghitung keuntungan maksimum, luas optimal, IP, kebutuhan air, dan grafik.
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label>Luas Fisik DI (ha)</label>
+        <input id="kLand" type="number" value="2522" step="1">
+      </div>
+      <div class="metric"><div class="label">Air MT I</div><div class="value">102,26 jt m³</div></div>
+      <div class="metric"><div class="label">Air MT II</div><div class="value">111,27 jt m³</div></div>
+      <div class="metric"><div class="label">Air MT III</div><div class="value">0,603 jt m³</div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div class="card">
+        <b>Komoditas MT II–MT III</b>
+        <div id="kCropChecks" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <b>Skenario Kangkung KK-09</b>
+        <select id="kKKWater">
+          <option value="900">Baseline 900 m³/ha/musim</option>
+          <option value="600">Sensitivitas 600 m³/ha/musim</option>
+        </select>
+        <div class="note" style="margin-top:8px">
+          Komoditas yang dicentang tidak dipaksa ditanam. Solver tetap menentukan apakah tanaman terpilih dan luas optimalnya.
+        </div>
+      </div>
+    </div>
+    <div id="kStatus" style="margin-top:12px"></div>
+  </div>
+
+  <div id="kResults">
+    <div class="card" id="kPlaceholderCard">
+      <h3>📊 Hasil Optimasi DI Kening</h3>
+      <div class="grid">
+        <div class="metric"><div class="label">Keuntungan Maksimum</div><div class="value">Belum dijalankan</div></div>
+        <div class="metric"><div class="label">IP Tahunan</div><div class="value">—</div></div>
+        <div class="metric"><div class="label">Kebutuhan Air</div><div class="value">—</div></div>
+        <div class="metric"><div class="label">Profitabilitas Air</div><div class="value">—</div></div>
+      </div>
+      <div class="note" style="margin-top:12px">Hasil akan terisi setelah tombol <b>RUN RESEARCH OPTIMIZATION</b> ditekan.</div>
+    </div>
+    <div class="card">
+      <h3>✅ Hasil Solver DI Kening</h3>
+      <div id="kCalendarInfo" class="success"></div>
+      <div id="kMetrics" class="grid" style="margin-top:12px"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tabbtn active" onclick="showKTab('kpattern',this)">Pola Tanam Optimal</button>
+      <button class="tabbtn" onclick="showKTab('kgraphs',this)">Grafik</button>
+      <button class="tabbtn" onclick="showKTab('kwater',this)">Neraca Air 36</button>
+      <button class="tabbtn" onclick="showKTab('kcalendar',this)">Alternatif Kalender</button>
+      <button class="tabbtn" onclick="showKTab('kbenchmark',this)">Benchmark</button>
+    </div>
+
+    <div id="kpattern" class="ktab card">
+      <div id="kPatternTable"></div>
+      <h4>Rekap per Musim</h4>
+      <div id="kSeasonTable"></div>
+    </div>
+
+    <div id="kgraphs" class="ktab card hidden">
+      <h4>Luas Tanam Optimal</h4>
+      <canvas id="kAreaChart" height="90"></canvas>
+      <h4>Ketersediaan vs Kebutuhan Air 36 Periode</h4>
+      <canvas id="kSupplyChart" height="95"></canvas>
+      <h4>Keuntungan per Musim</h4>
+      <canvas id="kProfitChart" height="80"></canvas>
+    </div>
+
+    <div id="kwater" class="ktab card hidden">
+      <div id="kWaterTable"></div>
+    </div>
+
+    <div id="kcalendar" class="ktab card hidden">
+      <div id="kCalendarTable"></div>
+    </div>
+
+    <div id="kbenchmark" class="ktab card hidden">
+      <div id="kBenchmarkTable"></div>
+    </div>
+
+    <div class="card">
+      <button class="btn secondary" onclick="downloadKeningCSV()">⬇ Download Hasil Solver CSV</button>
+      <button class="btn gold" onclick="window.print()">Cetak / Simpan PDF</button>
+    </div>
+  </div>
+</section>
+
 
   <section id="generalMode" class="hidden">
     <div class="card">
@@ -269,30 +354,206 @@ function runOptimization(){
 function draw(id,labels,datasets){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets},options:{responsive:true,plugins:{legend:{position:"top"}}}})}
 function downloadCSV(){let csv="Musim Tanam,Komoditas,Luas Optimal (ha),Kebutuhan Air (m3),Keuntungan Bersih (Rp/ha),Keuntungan (Rp)\n"+resultRows.map(r=>[r.season,r.crop,r.area,r.water,r.profitHa,r.profit].join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="DSS_AICROP_Hasil.csv";a.click()}
 renderClimate();calcRe();renderCrops();renderSteps("kening");
-</script>
 
-<script>
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const btn = document.getElementById('installAppBtn');
-  if (btn) btn.style.display = 'inline-block';
-});
-async function installPWA(){
-  if (deferredPrompt){
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    document.getElementById('installAppBtn').style.display='none';
-  } else {
-    alert('Android: buka menu browser lalu pilih Install app/Add to Home screen.\\n\\niPhone/iPad: buka di Safari → Share → Add to Home Screen.');
-  }
-}
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
-}
-</script>
 
+let _glpkInstance = null;
+async function loadGLPKBrowser(){
+  if (_glpkInstance) return _glpkInstance;
+  const mod = await import("https://cdn.jsdelivr.net/npm/glpk.js@4.0.2/dist/index.js");
+  const factory = mod.default || mod;
+  _glpkInstance = await factory();
+  return _glpkInstance;
+}
+
+/* =========================================================
+   RESEARCH MODE DI KENING — browser LP via GLPK.js
+   Mirrors V13 core structure: MT I fixed paddy, 36 water
+   constraints, daily land occupancy, calendar enumeration.
+   ========================================================= */
+const KCROPS=["Padi","Jagung","Kedelai","Kacang Hijau","Semangka","Kangkung KK-09"];
+const KPERIODS=[
+"Jan-I","Jan-II","Jan-III","Feb-I","Feb-II","Feb-III",
+"Mar-I","Mar-II","Mar-III","Apr-I","Apr-II","Apr-III",
+"Mei-I","Mei-II","Mei-III","Jun-I","Jun-II","Jun-III",
+"Jul-I","Jul-II","Jul-III","Agu-I","Agu-II","Agu-III",
+"Sep-I","Sep-II","Sep-III","Okt-I","Okt-II","Okt-III",
+"Nov-I","Nov-II","Nov-III","Des-I","Des-II","Des-III"];
+const KAVAIL={
+"Jan-I":9831974.40,"Jan-II":7662124.80,"Jan-III":16469671.68,
+"Feb-I":28017792.00,"Feb-II":18382982.40,"Feb-III":12640803.84,
+"Mar-I":11947219.20,"Mar-II":19320940.80,"Mar-III":16657660.80,
+"Apr-I":12575001.60,"Apr-II":12031200.00,"Apr-III":9842515.20,
+"Mei-I":7147872.00,"Mei-II":6846681.60,"Mei-III":5346190.08,
+"Jun-I":3397248.00,"Jun-II":4693593.60,"Jun-III":1462233.60,
+"Jul-I":378777.60,"Jul-II":94694.40,"Jul-III":107205.12,
+"Agu-I":19699.20,"Agu-II":691.20,"Agu-III":0,
+"Sep-I":1036.80,"Sep-II":691.20,"Sep-III":0,
+"Okt-I":0,"Okt-II":0,"Okt-III":0,
+"Nov-I":0,"Nov-II":0,"Nov-III":345.60,
+"Des-I":264384.00,"Des-II":352512.00,"Des-III":8634193.92};
+const KPROFIT={
+"Padi":8500000,"Jagung":8741888,"Kedelai":6325000,"Kacang Hijau":7500000,"Kangkung KK-09":20157000};
+const KSEMANGKA={"MT I":21183700,"MT II":22519526,"MT III":12339870};
+const KDUR={"Padi":110,"Jagung":90,"Kedelai":100,"Kacang Hijau":105,"Semangka":90,"Kangkung KK-09":110};
+const KETO={1:5.50,2:5.58,3:5.25,4:4.87,5:4.93,6:4.88,7:5.55,8:7.10,9:8.33,10:8.16,11:7.14,12:5.94};
+const KREP={1:13.80,2:15.98,3:14.63,4:7.29,5:3.84,6:1.22,7:.37,8:.07,9:.06,10:.29,11:8.96,12:16.51};
+const KREPAL={1:20.58,2:21.40,3:19.20,4:16.04,5:6.07,6:5.06,7:2.59,8:.83,9:1.74,10:3.89,11:23.30,12:25.63};
+const KEXISTING={ip:275.27,profit:66428898769.01,water:52864793.55};
+let kLast=null;
+
+function renderKCropChecks(){
+  document.getElementById("kCropChecks").innerHTML=KCROPS.map((c,i)=>
+    `<label style="display:inline-block;margin:5px 14px 5px 0"><input id="kcrop${i}" type="checkbox" checked style="width:auto"> ${c}</label>`
+  ).join("");
+}
+function kProfit(c,m){return c==="Semangka"?KSEMANGKA[m]:KPROFIT[c]}
+function kDaysInMonth(y,m){return new Date(y,m,0).getDate()}
+function kPeriod(d){
+ const mn=["","Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][d.getMonth()+1];
+ const day=d.getDate(),das=day<=10?"I":day<=20?"II":"III";return `${mn}-${das}`;
+}
+function kAddDays(d,n){let x=new Date(d.getTime());x.setDate(x.getDate()+n);return x}
+function kDate(s){return new Date(s+"T00:00:00")}
+function kFmtDate(d){return d.toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"})}
+function kKc(c,a){
+ if(c==="Padi") return a<=20?1.10:a<=45?1.125:a<=90?1.225:.95;
+ if(c==="Jagung") return a<=15?.50:a<=35?.80:a<=70?1.125:.70;
+ if(c==="Kedelai") return a<=20?.45:a<=45?.80:a<=80?1.125:.60;
+ if(c==="Kacang Hijau") return a<=20?.40:a<=50?.80:a<=80?1.05:.475;
+ if(c==="Semangka") return a<=20?.40:a<=40?.70:a<=70?1.00:.75;
+ return 0;
+}
+function kGenerateW(start,season,kkTotal){
+ let W={};KCROPS.forEach(c=>KPERIODS.forEach(t=>W[`${c}|${t}`]=0));
+ [1,15,25].forEach(age=>{let t=kPeriod(kAddDays(start,age-1));W[`Kangkung KK-09|${t}`]+=kkTotal/3});
+ ["Padi","Jagung","Kedelai","Kacang Hijau","Semangka"].forEach(c=>{
+   for(let a=1;a<=KDUR[c];a++){
+     let d=kAddDays(start,a-1), t=kPeriod(d), m=d.getMonth()+1;
+     let etc=KETO[m]*kKc(c,a), nfr;
+     if(c==="Padi"){
+       let re=KREP[m]/kDaysInMonth(d.getFullYear(),m),wlr=0;
+       if(a>=31&&a<=45)wlr+=50/15;if(a>=62&&a<=76)wlr+=50/15;
+       nfr=Math.max(0,etc+2+wlr-re);
+     }else{
+       let re=KREPAL[m]/kDaysInMonth(d.getFullYear(),m);
+       nfr=Math.max(0,etc-re);
+     }
+     if(KPERIODS.includes(t))W[`${c}|${t}`]+=nfr*10;
+   }
+ });
+ return W;
+}
+function kAuditMT1(start,land,kkTotal){
+ let W=kGenerateW(start,"MT I",kkTotal),min=Infinity,crit="-",ok=true,details=[];
+ KPERIODS.forEach(t=>{
+   let dem=W[`Padi|${t}`]*land,sl=KAVAIL[t]-dem;
+   if(dem>0&&sl<min){min=sl;crit=t} if(sl<-1)ok=false;
+   if(dem>0)details.push({t,dem,sl});
+ });
+ return {ok,min:min===Infinity?0:min,crit,details,W};
+}
+function kSelectMT1(land,kkTotal){
+ let opts=["2025-11-01","2025-11-11","2025-11-21","2025-12-01","2025-12-11","2025-12-21","2026-01-01","2026-01-11","2026-01-21"];
+ let audits=[],sel=null;
+ opts.forEach(s=>{let d=kDate(s),a=kAuditMT1(d,land,kkTotal);audits.push({date:d,...a});if(!sel&&a.ok)sel=d});
+ return {audits,sel};
+}
+function kCalendarCandidates(mt1){
+ let mt2=[],d=kAddDays(mt1,KDUR["Padi"]),last=kDate("2026-05-31");
+ while(d<=last){mt2.push(new Date(d));d=kAddDays(d,10)}
+ let mt3=["2026-06-01","2026-06-11","2026-06-21","2026-07-01","2026-07-11","2026-07-21","2026-08-01"].map(kDate);
+ return {mt2,mt3};
+}
+function kVar(c,m){return `X_${c.replace(/[^A-Za-z0-9]/g,"_")}_${m.replace(/ /g,"_")}`}
+async function kSolveCalendar(glpk,land,active,kkTotal,s1,s2,s3){
+ const starts={"MT I":s1,"MT II":s2,"MT III":s3}, Ws={};
+ ["MT I","MT II","MT III"].forEach(m=>Ws[m]=kGenerateW(starts[m],m,kkTotal));
+ let vars=[];["MT II","MT III"].forEach(m=>active.forEach(c=>vars.push({c,m,n:kVar(c,m)})));
+ let objective={direction:glpk.GLP_MAX,name:"profit",vars:vars.map(v=>({name:v.n,coef:kProfit(v.c,v.m)}))};
+ let subjectTo=[];
+ ["MT II","MT III"].forEach(m=>subjectTo.push({name:`land_${m}`,vars:vars.filter(v=>v.m===m).map(v=>({name:v.n,coef:1})),bnds:{type:glpk.GLP_UP,ub:land,lb:0}}));
+ KPERIODS.forEach(t=>{
+   let fixed=Ws["MT I"][`Padi|${t}`]*land, rhs=KAVAIL[t]-fixed;
+   subjectTo.push({name:`water_${t}`,vars:vars.map(v=>({name:v.n,coef:Ws[v.m][`${v.c}|${t}`]})).filter(x=>Math.abs(x.coef)>1e-12),bnds:{type:glpk.GLP_UP,ub:rhs,lb:0}});
+ });
+ let minD=new Date(Math.min(s1,s2,s3)),maxD=new Date(Math.max(...["MT I","MT II","MT III"].flatMap(m=>KCROPS.map(c=>kAddDays(starts[m],KDUR[c]-1))).map(x=>x.getTime())));
+ for(let d=new Date(minD);d<=maxD;d=kAddDays(d,1)){
+   let fixed=(d>=s1&&d<=kAddDays(s1,KDUR["Padi"]-1))?land:0;
+   let av=vars.filter(v=>d>=starts[v.m]&&d<=kAddDays(starts[v.m],KDUR[v.c]-1)).map(v=>({name:v.n,coef:1}));
+   if(av.length)subjectTo.push({name:`occ_${d.toISOString().slice(0,10)}`,vars:av,bnds:{type:glpk.GLP_UP,ub:land-fixed,lb:0}});
+ }
+ let bounds=vars.map(v=>({name:v.n,type:glpk.GLP_LO,lb:0,ub:0}));
+ let lp={name:"DSS_AICROP_KENING",objective,subjectTo,bounds};
+ let sol=await glpk.solve(lp,{msglev:glpk.GLP_MSG_OFF,presol:true});
+ if(!sol || !sol.result) return null;
+ const st = sol.result.status;
+ if(st !== glpk.GLP_OPT && st !== glpk.GLP_FEAS) return null;
+ let x=sol.result.vars||{},cropRows=[];
+ cropRows.push({m:"MT I",c:"Padi",area:land,water:KPERIODS.reduce((s,t)=>s+Ws["MT I"][`Padi|${t}`]*land,0),profitHa:kProfit("Padi","MT I"),profit:kProfit("Padi","MT I")*land});
+ ["MT II","MT III"].forEach(m=>active.forEach(c=>{let area=+(x[kVar(c,m)]||0);if(area>1e-6){let w=KPERIODS.reduce((s,t)=>s+Ws[m][`${c}|${t}`]*area,0);cropRows.push({m,c,area,water:w,profitHa:kProfit(c,m),profit:kProfit(c,m)*area})}}));
+ let temporal=KPERIODS.map((t,i)=>{let demand=Ws["MT I"][`Padi|${t}`]*land;["MT II","MT III"].forEach(m=>active.forEach(c=>{demand+=Ws[m][`${c}|${t}`]*(+(x[kVar(c,m)]||0))}));let a=KAVAIL[t],sl=a-demand;return{stage:i+1,t,a,d:demand,sl,util:a>0?100*demand/a:(demand<=1?0:Infinity),status:sl>=-1?"Layak":"Defisit"}});
+ let seasons=["MT I","MT II","MT III"].map(m=>{let rr=cropRows.filter(r=>r.m===m),area=rr.reduce((s,r)=>s+r.area,0),water=rr.reduce((s,r)=>s+r.water,0),profit=rr.reduce((s,r)=>s+r.profit,0);return{m,area,ip:100*area/land,water,profit}});
+ let annualArea=cropRows.reduce((s,r)=>s+r.area,0),profit=cropRows.reduce((s,r)=>s+r.profit,0),water=temporal.reduce((s,r)=>s+r.d,0);
+ return{cropRows,temporal,seasons,annualArea,ip:100*annualArea/land,profit,water,wp:water?profit/water:0,s1,s2,s3};
+}
+async function runKeningOptimization(){
+ const status=document.getElementById("kStatus"),land=+document.getElementById("kLand").value,kk=+document.getElementById("kKKWater").value;
+ const active=KCROPS.filter((c,i)=>document.getElementById(`kcrop${i}`).checked);
+ if(!active.length){status.innerHTML='<div class="note">Pilih minimal satu komoditas.</div>';return}
+ status.innerHTML='<div class="note">Solver sedang menjalankan audit MT I dan enumerasi kalender...</div>';
+ const topState=document.getElementById("kTopState");
+ if(topState) topState.innerHTML="⏳ Solver sedang menghitung kombinasi kalender dan pola tanam...";
+ try{
+   const glpk=await loadGLPKBrowser();
+   const mt1=kSelectMT1(land,kk);
+   if(!mt1.sel){status.innerHTML='<div class="note">Tidak ditemukan awal MT I yang layak untuk padi 100%.</div>';return}
+   const cc=kCalendarCandidates(mt1.sel),alts=[],results=[];
+   for(const s2 of cc.mt2)for(const s3 of cc.mt3){
+     let r=await kSolveCalendar(glpk,land,active,kk,mt1.sel,s2,s3);
+     if(r){results.push(r);alts.push({s1:mt1.sel,s2,s3,ip:r.ip,water:r.water,profit:r.profit,wp:r.wp})}
+   }
+   if(!results.length){status.innerHTML='<div class="note">Tidak ada solusi optimal pada kalender yang diuji.</div>';return}
+   results.sort((a,b)=>b.profit-a.profit||b.ip-a.ip||a.water-b.water);alts.sort((a,b)=>b.profit-a.profit||b.ip-a.ip);
+   kLast={best:results[0],alts,land};renderKeningResults(kLast);
+   status.innerHTML='<div class="success">Running selesai. Solusi optimal ditemukan.</div>';
+   if(topState) topState.innerHTML="✅ Optimasi selesai. Keuntungan maksimum, IP, kebutuhan air, profitabilitas air, tabel, dan grafik telah dihitung.";
+   const resEl=document.getElementById("kResults");
+   if(resEl) resEl.scrollIntoView({behavior:"smooth",block:"start"});
+ }catch(e){
+   status.innerHTML=`<div class="note"><b>Solver gagal dijalankan.</b> ${e.message}<br>Pastikan koneksi internet aktif karena GLPK.js dimuat dari CDN pada running pertama.</div>`;
+   if(topState) topState.innerHTML="⚠️ Solver belum berhasil dijalankan. Lihat pesan kesalahan di bawah.";
+ }
+}
+function showKTab(id,el){
+ document.querySelectorAll(".ktab").forEach(x=>x.classList.add("hidden"));
+ document.querySelectorAll("#kResults .tabbtn").forEach(x=>x.classList.remove("active"));
+ document.getElementById(id).classList.remove("hidden");el.classList.add("active");
+}
+function renderKeningResults(pack){
+ let r=pack.best;
+ const ph=document.getElementById("kPlaceholderCard"); if(ph) ph.style.display="none";
+ document.getElementById("kResults").classList.remove("hidden");
+ document.getElementById("kCalendarInfo").innerHTML=`Kalender optimal: MT I ${kFmtDate(r.s1)} → MT II ${kFmtDate(r.s2)} → MT III ${kFmtDate(r.s3)}`;
+ const mets=[["Keuntungan Maksimum",`Rp ${(r.profit/1e9).toFixed(2)} M`],["IP Tahunan",`${r.ip.toFixed(2)}%`],["Kebutuhan Air",`${(r.water/1e6).toFixed(2)} jt m³`],["Profitabilitas Air",`Rp ${r.wp.toLocaleString("id-ID",{maximumFractionDigits:0})}/m³`]];
+ document.getElementById("kMetrics").innerHTML=mets.map(x=>`<div class="metric"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></div>`).join("");
+ document.getElementById("kPatternTable").innerHTML=tableHTML(["Musim","Komoditas","Luas Optimal (ha)","Kebutuhan Air (m³)","Profit/ha","Keuntungan"],r.cropRows.map(x=>`<tr><td>${x.m}</td><td>${x.c}</td><td>${x.area.toFixed(2)}</td><td>${x.water.toFixed(0)}</td><td>${x.profitHa.toLocaleString("id-ID")}</td><td>${x.profit.toLocaleString("id-ID")}</td></tr>`));
+ document.getElementById("kSeasonTable").innerHTML=tableHTML(["Musim","Luas (ha)","IP (%)","Air (m³)","Keuntungan"],r.seasons.map(x=>`<tr><td>${x.m}</td><td>${x.area.toFixed(2)}</td><td>${x.ip.toFixed(2)}</td><td>${x.water.toFixed(0)}</td><td>${x.profit.toLocaleString("id-ID")}</td></tr>`));
+ document.getElementById("kWaterTable").innerHTML=tableHTML(["Stage","Periode","A_t","D_t","Slack","Utilisasi %","Status"],r.temporal.map(x=>`<tr><td>${x.stage}</td><td>${x.t}</td><td>${x.a.toFixed(2)}</td><td>${x.d.toFixed(2)}</td><td>${x.sl.toFixed(2)}</td><td>${isFinite(x.util)?x.util.toFixed(2):"∞"}</td><td>${x.status}</td></tr>`));
+ document.getElementById("kCalendarTable").innerHTML=tableHTML(["Awal MT I","Awal MT II","Awal MT III","IP Tahunan %","Air m³","Keuntungan Rp"],pack.alts.slice(0,30).map(x=>`<tr><td>${kFmtDate(x.s1)}</td><td>${kFmtDate(x.s2)}</td><td>${kFmtDate(x.s3)}</td><td>${x.ip.toFixed(2)}</td><td>${x.water.toFixed(0)}</td><td>${x.profit.toLocaleString("id-ID")}</td></tr>`));
+ document.getElementById("kBenchmarkTable").innerHTML=tableHTML(["Indikator","Eksisting","Optimasi","Perubahan"],[
+ `<tr><td>IP Tahunan (%)</td><td>${KEXISTING.ip.toFixed(2)}</td><td>${r.ip.toFixed(2)}</td><td>${(r.ip-KEXISTING.ip).toFixed(2)}</td></tr>`,
+ `<tr><td>Keuntungan (Rp)</td><td>${KEXISTING.profit.toLocaleString("id-ID")}</td><td>${r.profit.toLocaleString("id-ID")}</td><td>${(r.profit-KEXISTING.profit).toLocaleString("id-ID")}</td></tr>`,
+ `<tr><td>Kebutuhan Air (m³)</td><td>${KEXISTING.water.toLocaleString("id-ID")}</td><td>${r.water.toLocaleString("id-ID")}</td><td>${(r.water-KEXISTING.water).toLocaleString("id-ID")}</td></tr>`
+ ]);
+ draw("kAreaChart",r.cropRows.map(x=>x.m+" | "+x.c),[{label:"Luas Optimal (ha)",data:r.cropRows.map(x=>x.area)}]);
+ draw("kSupplyChart",r.temporal.map(x=>x.t),[{label:"Ketersediaan A_t",data:r.temporal.map(x=>x.a)},{label:"Kebutuhan D_t",data:r.temporal.map(x=>x.d)}]);
+ draw("kProfitChart",r.seasons.map(x=>x.m),[{label:"Keuntungan (Rp)",data:r.seasons.map(x=>x.profit)}]);
+}
+function downloadKeningCSV(){
+ if(!kLast)return;let rr=kLast.best.cropRows,csv="Musim Tanam,Komoditas,Luas Optimal (ha),Kebutuhan Air (m3),Keuntungan Bersih (Rp/ha),Keuntungan (Rp)\n"+rr.map(x=>[x.m,x.c,x.area,x.water,x.profitHa,x.profit].join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="DSS_AICROP_DI_Kening_Hasil.csv";a.click()
+}
+renderKCropChecks();
+
+</script>
 </body>
 </html>
