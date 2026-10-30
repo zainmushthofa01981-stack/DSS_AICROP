@@ -1,0 +1,24 @@
+DSS AICROP - INSTALL DI HP
+
+ANDROID / CHROME
+1. Buka alamat GitHub Pages DSS AICROP.
+2. Tekan tombol INSTALL DSS AICROP pada bagian bawah.
+3. Jika dialog install tidak muncul, buka menu Chrome (tiga titik).
+4. Pilih Add to Home screen / Install app / Install and create shortcut.
+5. Konfirmasi Install.
+
+IPHONE / IPAD
+1. Buka alamat DSS AICROP melalui Safari.
+2. Tekan tombol Share.
+3. Pilih Add to Home Screen.
+4. Tekan Add.
+
+File yang harus ada di root GitHub:
+- index.html
+- manifest.webmanifest
+- service-worker.js
+- icon-192.png
+- icon-512.png
+- icon-maskable-512.png
+- apple-touch-icon.png
+- favicon.png

@@ -51,9 +51,46 @@ td:first-child,th:first-child{text-align:left}
 .hidden{display:none}
 canvas{background:#fff;border-radius:10px;padding:8px}
 @media(max-width:900px){.grid,.grid3,.grid2{grid-template-columns:1fr}.title{font-size:30px}.logo{width:64px;height:64px}.header{align-items:flex-start}}
+body{padding-bottom:90px;}
 </style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#003B70">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DSS AICROP">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./favicon.png">
+
 </head>
 <body>
+
+<div id="installBanner" style="
+  position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;
+  background:#ffffff;border:1px solid #d7e2ea;border-left:6px solid #003B70;
+  border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.16);
+  padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;
+">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <img src="./icon-192.png" alt="DSS AICROP" style="width:48px;height:48px;border-radius:12px;">
+    <div>
+      <div style="font-weight:800;color:#003B70;font-size:15px;">DSS AICROP</div>
+      <div id="installHint" style="font-size:12px;color:#607080;">Pasang aplikasi ini di HP.</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+    <button id="installBtn" onclick="installDSSAICROP()" style="
+      background:#003B70;color:#fff;border:0;border-radius:9px;
+      padding:10px 14px;font-weight:800;cursor:pointer;
+    ">📲 INSTALL DSS AICROP</button>
+    <button onclick="dismissInstallBanner()" style="
+      background:#eef3f7;color:#33475b;border:0;border-radius:9px;
+      padding:10px 12px;font-weight:700;cursor:pointer;
+    ">Nanti</button>
+  </div>
+</div>
+
 <div class="container">
   <div class="header">
     <img class="logo" src="https://mm.undip.ac.id/wp-content/uploads/2021/11/universitas-diponegoro-logo.png" alt="Logo UNDIP">
@@ -556,31 +593,94 @@ renderKCropChecks();
 
 </script>
 
+
+
+
 <script>
-/* Mobile/PWA forced refresh helper — DSS AICROP v6 */
-(function () {
-  if (!('serviceWorker' in navigator)) return;
+let dssInstallPrompt = null;
 
+function isIOSDevice(){
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+}
+function isStandaloneMode(){
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
+function dismissInstallBanner(){
+  const b=document.getElementById('installBanner');
+  if(b) b.style.display='none';
+}
+function updateInstallUI(){
+  const btn=document.getElementById('installBtn');
+  const hint=document.getElementById('installHint');
+  if(!btn || !hint) return;
+
+  if(isStandaloneMode()){
+    hint.textContent='Aplikasi sudah terpasang di perangkat ini.';
+    btn.textContent='✓ SUDAH TERPASANG';
+    btn.disabled=true;
+    btn.style.opacity='.7';
+    return;
+  }
+
+  if(isIOSDevice()){
+    btn.textContent='📲 CARA INSTALL DI IPHONE';
+    hint.textContent='Safari → Share → Add to Home Screen.';
+  } else if(dssInstallPrompt){
+    btn.textContent='📲 INSTALL DSS AICROP';
+    hint.textContent='Tekan Install untuk memasang aplikasi di Android.';
+  } else {
+    btn.textContent='📲 TAMBAHKAN KE HOME SCREEN';
+    hint.textContent='Jika dialog install belum muncul, gunakan menu browser → Add to Home screen.';
+  }
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  dssInstallPrompt = event;
+  updateInstallUI();
+});
+
+window.addEventListener('appinstalled', () => {
+  dssInstallPrompt = null;
+  updateInstallUI();
+});
+
+async function installDSSAICROP(){
+  if(isStandaloneMode()){
+    alert('DSS AICROP sudah terpasang di perangkat ini.');
+    return;
+  }
+
+  if(isIOSDevice()){
+    alert('iPhone/iPad:\\n1. Buka halaman ini di Safari.\\n2. Tekan tombol Share.\\n3. Pilih Add to Home Screen.\\n4. Tekan Add.');
+    return;
+  }
+
+  if(dssInstallPrompt){
+    dssInstallPrompt.prompt();
+    await dssInstallPrompt.userChoice;
+    dssInstallPrompt = null;
+    updateInstallUI();
+    return;
+  }
+
+  alert('Android:\\n1. Pastikan halaman dibuka di Chrome.\\n2. Tekan menu ⋮.\\n3. Pilih Add to Home screen / Install app / Install and create shortcut.\\n4. Konfirmasi pemasangan.');
+}
+
+if('serviceWorker' in navigator){
   window.addEventListener('load', async () => {
-    try {
-      const reg = await navigator.serviceWorker.register('./service-worker.js?v=6', { scope: './' });
+    try{
+      const reg = await navigator.serviceWorker.register('./service-worker.js', {scope:'./'});
       await reg.update();
-
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
-        refreshing = true;
-        window.location.reload();
-      });
-
-      if (reg.waiting) {
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      }
-    } catch (err) {
-      console.warn('Service worker update failed:', err);
+    }catch(err){
+      console.warn('Service Worker:', err);
     }
+    updateInstallUI();
   });
-})();
+} else {
+  window.addEventListener('load', updateInstallUI);
+}
 </script>
 
 </body>
