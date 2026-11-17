@@ -238,6 +238,11 @@ const select=(id,label,opts)=>'<label for="'+id+'">'+h(label)+'<select id="'+id+
 function status(id,msg,err=false){const a=$(id);a.className='notice'+(err?' error':'');a.textContent=msg;}
 function box(title,body){return '<section class="panel"><h2>'+h(title)+'</h2>'+body+'</section>';}
 function collapse(title,body){return '<details><summary>'+h(title)+'</summary>'+body+'</details>';}
+const monthID=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function shortPlantingDate(isoDate){
+  const parts=/^\d{4}-(\d{2})-(\d{2})$/.exec(isoDate);
+  return parts && monthID[Number(parts[1])-1] ? Number(parts[2])+' '+monthID[Number(parts[1])-1] : isoDate;
+}
 const ch=['Musim','Komoditas','Awal tanam','Luas (ha)','Kebutuhan air (m³)','Keuntungan (Rp)'];
 const th=['Tahap','Dasarian','Q80 (m³)','Air nonfleksibel (m³)','Air KK-09 fleksibel (m³)','Kebutuhan (m³)','Sisa Q80 (m³)'];
 const ah=['Penurunan Q80','Keuntungan (Rp)','Kebutuhan (m³)','Luas tahunan (ha)','IP (%)','KK-09 MT II (ha)','KK-09 MT III (ha)','Status'];
@@ -294,7 +299,7 @@ function showK(){
   const sr=seasons.map(m=>{const a=crop.filter(x=>x[0]===m);return [m,sum(a.map(x=>x[3])),sum(a.map(x=>x[4])),sum(a.map(x=>x[5]))];});
   const msg='<p class="small">Jendela 10–15, 20–25, dan 36–42 HST bukan tanggal penyiraman pasti. Parameter KK-09 berasal dari luar DI Kening dan belum tervalidasi lokal. Bobot per kejadian adalah asumsi.</p>';
   $('kDetail').innerHTML=metrics(r)
-   +box('Pola tanam dan keuntungan','<div class="actions"><button id="downK" class="primary">Unduh hasil Excel</button></div>'+tf(ch,crop)+chart(seasons,[{label:'Keuntungan',values:sr.map(x=>x[3]/1e9)}],'Rp miliar'))
+   +box('Pola tanam dan keuntungan','<div class="actions"><button id="downK" class="primary">Unduh hasil Excel</button></div>'+'<p class="caption">Siklus tanam November 2025–Oktober 2026</p>'+tf(ch,crop.map(([m,j,awal,...nilai])=>[m,j,shortPlantingDate(awal),...nilai]))+chart(seasons,[{label:'Keuntungan',values:sr.map(x=>x[3]/1e9)}],'Rp miliar'))
    +box('Neraca Q80 36 dasarian',chart(DATA.period,[{label:'Ketersediaan Q80',values:r.temporal.map(x=>x[2]/1e6)},{label:'Kebutuhan',values:r.temporal.map(x=>x[5]/1e6)}],'juta m³')+collapse('Tabel neraca per dasarian',tf(th,r.temporal))+collapse('Okupansi lahan per tanggal perubahan',tf(hh,r.occupied)))
    +box('Uji adaptasi terhadap penurunan Q80','<p class="small">Pasokan Juni–Oktober diturunkan dengan kalender tetap. Luas dan komoditas dihitung ulang.</p>'+tf(ah,adapt))
    +box('Jejak audit dan kandidat',collapse('Alokasi irigasi fleksibel KK-09',msg+(alloc.length?tf(kh,alloc):'<p class="small">Mode fleksibel tidak aktif.</p>'))+collapse('Matriks W solver · 648 entri',tf(wh,w))+collapse('Bandingkan seluruh kandidat kalender',tf(lh,aRows)));
