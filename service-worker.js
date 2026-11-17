@@ -1,53 +1,58 @@
-const CACHE_NAME = 'dss-aicrop-installable-v7';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-maskable-512.png',
-  './apple-touch-icon.png',
-  './favicon.png'
-];
+'use strict';
+const PREFIX = 'dss-aicrop-installable-';
+const CURRENT = PREFIX + 'v8-20261117';
+const ROOT = new URL(self.registration.scope);
+const INDEX = new URL('index.html', ROOT).href;
+const ASSETS = [
+  'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
+  'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon.png'
+].map(file => new URL(file, ROOT).href);
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CURRENT);
+    const response = await fetch(INDEX, {cache: 'reload'});
+    if (!response.ok) throw new Error('Halaman utama belum tersedia.');
+    await cache.put(INDEX, response);
+    await Promise.allSettled(ASSETS.map(url => cache.add(new Request(url, {cache:'reload'}))));
+    await self.skipWaiting();
+  })());
 });
-
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name.startsWith(PREFIX) && name !== CURRENT).map(name => caches.delete(name)));
+    await self.clients.claim();
+  })());
 });
-
 self.addEventListener('fetch', event => {
-  if(event.request.method !== 'GET') return;
-
-  if(event.request.mode === 'navigate'){
-    event.respondWith(
-      fetch(event.request, {cache:'no-store'})
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  const key = url.origin + url.pathname;
+  const isIndex = key === ROOT.href || key === INDEX;
+  if (req.mode !== 'navigate' || !isIndex) {
+    if (ASSETS.includes(key)) {
+      event.respondWith((async () => {
+        const cache = await caches.open(CURRENT);
+        return (await cache.match(key)) || fetch(req);
+      })());
+    }
     return;
   }
-
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      const network = fetch(event.request).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+  event.respondWith((async () => {
+    const cache = await caches.open(CURRENT);
+    try {
+      const response = await fetch(req, {cache:'no-store'});
+      if (response.ok) {
+        await cache.put(INDEX, response.clone()).catch(() => {});
         return response;
-      }).catch(() => cached);
-      return cached || network;
-    })
-  );
+      }
+      return (await cache.match(INDEX)) || response;
+    } catch (_) {
+      return (await cache.match(INDEX)) || new Response('Aplikasi belum tersimpan untuk penggunaan luring.', {
+        status:503, headers:{'Content-Type':'text/plain; charset=utf-8'}
+      });
+    }
+  })());
 });
